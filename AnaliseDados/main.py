@@ -61,20 +61,16 @@ def avg_age_from_birth_date(df: DataFrame, birth_date_column: str) -> DataFrame:
     Returns:
         DataFrame with a single column containing the average age.
     """
-    # Ensure birth date column is of type date
     if not isinstance(df.schema[birth_date_column].dataType, DateType):
         df = df.withColumn(
             birth_date_column,
             F.to_date(birth_date_column, 'yyyy-MM-dd')
         )
 
-    # Simple age calculation
     df = df.withColumn(
         'age',
         F.year(F.current_date()) - F.year(F.col(birth_date_column))
     )
-
-    # Aggregate average age
     return df.agg(F.round(F.avg('age'), 0).alias('avg_age'))
 
 
@@ -84,7 +80,6 @@ def main():
     """
     spark = BaseSpark(name='analise_dados').create_session()
 
-    # Read input file
     df = read_file(spark=spark, file_type='csv', path=file_path)
 
     # Get customers with most records
