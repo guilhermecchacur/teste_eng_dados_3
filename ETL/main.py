@@ -6,7 +6,19 @@ from pyspark.sql import DataFrame
 from pyspark.sql.types import DecimalType, IntegerType
 from pyspark.sql.window import Window
 
-from utils import EtlConfig, Logger, BaseSpark, read_file, write_file
+from utils.utils import EtlConfig, Logger, BaseSpark, read_file, write_file
+
+
+def glue_add_partition(spark, table_path, database, table, partition_column, partition_value):
+    partition_path = f'{table_path}/{partition_column}={partition_value}'
+
+    query = """
+        alter table {}.{}
+        add if not exists partition ({}='{}')
+        location '{}'
+        """.format(database, table, partition_column, partition_value, partition_path)
+    
+    spark.sql(query)
 
 
 class EtlTransformations:
@@ -131,6 +143,15 @@ class EtlPipeline:
 
             write_file(df, self.config.bucket_bronze, "anomesdia")
 
+            glue_add_partition(
+                spark=self.spark,
+                table_path=self.config.bucket_bronze,
+                database=self.config.database_bronze,
+                table=self.config.tabela_bronze,
+                partition_column='anomesdia',
+                partition_value=date_today
+            )
+
             self.log.info(f"Finished Bronze Layer Process - {date_today}")
             self.log.info(f"Saved in {self.config.bucket_bronze}\n")
 
@@ -180,12 +201,23 @@ class EtlPipeline:
             df = df.withColumn("anomesdia", F.lit(date_today))
 
             write_file(df, self.config.bucket_silver, "anomesdia")
+
+            glue_add_partition(
+                spark=self.spark,
+                table_path=self.config.bucket_silver,
+                database=self.config.database_silver,
+                table=self.config.tabela_silver,
+                partition_column='anomesdia',
+                partition_value=date_today
+            )
+
             self.log.info(f"Finished Silver Layer Process - {date_today}")
             self.log.info(f"Saved in {self.config.bucket_silver}\n")
 
         except Exception:
             self.log.exception(f"Silver Layer failed - {date_today}")
             raise
+
 
     def run(self) -> None:
         """
@@ -201,12 +233,10 @@ class EtlPipeline:
             self.log.exception("ETL run failed.")
             raise
         finally:
-            # Always attempt to stop Spark to free resources
             try:
                 self.spark.stop()
                 self.log.info("Spark session stopped.")
             except Exception:
-                # If stopping Spark fails, we still don't want to hide the original error
                 self.log.exception("Failed to stop Spark session cleanly.")
 
 

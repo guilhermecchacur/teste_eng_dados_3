@@ -4,5 +4,7 @@
     "bucket_bronze": "/content/bucket-bronze/tabela_cliente_landing/",
     "bucket_silver": "/content/bucket-silver/tb_cliente/",
     "tabela_bronze": "tabela_cliente_landing",
-    "tabela_silver": "tb_cliente"
+    "tabela_silver": "tb_cliente",
+    "database_bronze": "bronze_layer",
+    "database_silver": "silver_layer"
 }
