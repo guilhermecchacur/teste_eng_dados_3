@@ -1,0 +1,8 @@
+{
+    "name": "etl_clientes",
+    "raw_file": "/content/clientes_sinteticos.csv",
+    "bucket_bronze": "/content/bucket-bronze/tabela_cliente_landing/",
+    "bucket_silver": "/content/bucket-silver/tb_cliente/",
+    "tabela_bronze": "tabela_cliente_landing",
+    "tabela_silver": "tb_cliente"
+}
