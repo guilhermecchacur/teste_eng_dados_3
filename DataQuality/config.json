@@ -1,0 +1,8 @@
+{
+    "name": "quality_clientes",
+    "bucket": "/content/bucket-silver/tb_cliente/",
+    "tabela": "tb_cliente",
+    "partition_column": "anomesdia",
+    "key_column": "cod_cliente",
+    "bucket_quality": "/content/bucket-silver/quality/tb_cliente/"
+}
