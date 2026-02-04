@@ -1,0 +1,49 @@
+A arquitetura proposta tem como objetivo capturar dados de cadastro de clientes provenientes de um banco de dados MySQL, utilizando CDC como mecanismo de ingestão. O Data Lake seguirá o padrão de arquitetura medalhão.
+
+.Ingestão de Dados
+
+AWS DMS
+Serviço responsável pela captura dos dados da origem MySQL via CDC e pela gravação dos dados no bucket Landing do Amazon S3. Os dados serão armazenados em formato Parquet, otimizando custo e performance.
+
+.Camada de Armazenamento – AWS S3
+
+	O Data Lake será estruturado em múltiplas camadas, seguindo o padrão medalhão:
+
+	Bucket Landing
+	Camada inicial de ingestão, responsável por armazenar os arquivos gerados pelo DMS. Pode ser organizada por partições de data de processamento.
+
+	Bucket Bronze
+	Armazena dados ainda brutos, porém reorganizados, com arquivos maiores, esquema padronizado e enriquecidos com metadados de ingestão.
+
+	Bucket Silver
+	Contém dados tratados, com aplicação de regras de negócio, padronização de campos e manutenção apenas do último registro válido.
+
+	Bucket Gold
+	Camada destinada a dados agregados e combinados, prontos para consumo analítico e geração de relatórios.
+
+.Processamento e Orquestração
+
+AWS Glue Jobs
+Responsáveis pelos processos de ETL, realizando as transformações e movimentações dos dados entre as camadas Landing, Bronze, Silver e Gold.
+
+AWS Step Functions
+Responsável pela orquestração dos fluxos de ETL e execução de jobs auxiliares.
+
+AWS EventBridge
+Utilizado para o agendamento e disparo das execuções dos pipelines.
+
+.Metadados, Governança e Acesso
+
+AWS Glue Data Catalog
+Serviço responsável pelo gerenciamento dos metadados das tabelas do Data Lake.
+
+AWS Lake Formation
+Responsável pela governança e controle de acesso aos dados, garantindo permissões refinadas por usuário, grupo ou camada.
+
+AWS IAM
+Gerencia as permissões entre serviços e políticas de segurança da arquitetura.
+
+.Consumo de Dados
+
+AWS Athena
+Serviço responsável pela consulta e disponibilização dos dados armazenados no Data Lake para análises e relatórios.
