@@ -1,3 +1,4 @@
+import argparse
 import json
 import logging
 from pathlib import Path
@@ -102,10 +103,10 @@ class EtlConfig:
     Loads config.json from the same folder as this file and exposes keys as attributes.
     """
 
-    def __init__(self, config_filename: str = "config.json") -> None:
+    def __init__(self, config_path: str) -> None:
         """
         Args:
-            config_filename: Config file name (default: 'config.json').
+            config_path: Config file path.
 
         Raises:
             FileNotFoundError: If config file does not exist.
@@ -115,7 +116,7 @@ class EtlConfig:
         base_path = Path(__file__).resolve()
         project_root = base_path.parent
 
-        self.path: Path = project_root / config_filename
+        self.path: Path = Path(config_path)
         data = self._load()
 
         # Turn JSON keys into attributes
@@ -232,3 +233,19 @@ def write_file(df: DataFrame, path: str, partition_column: str) -> None:
         raise RuntimeError(
             f"Failed to write parquet to path: {path} partitioned by '{partition_column}'."
         ) from exc
+    
+def parse_args():
+    """
+    Parse command-line arguments for the ETL job.
+
+    Returns:
+        argparse.Namespace: Parsed arguments containing:
+            - config (str | None): Path to the configuration JSON file.
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        help="Path to config.json (local filesystem)",
+        required=False,
+    )
+    return parser.parse_args()

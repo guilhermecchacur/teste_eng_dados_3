@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.types import DecimalType, IntegerType
 from pyspark.sql.window import Window
 
-from utils.utils import EtlConfig, Logger, BaseSpark, read_file, write_file
+from utils.utils import EtlConfig, Logger, BaseSpark, read_file, write_file, parse_args
 
 
 def glue_add_partition(spark, table_path, database, table, partition_column, partition_value):
@@ -88,14 +88,14 @@ class EtlTransformations:
         """
         window = Window.partitionBy(groupby_column).orderBy(F.col(orderby_column).desc())
         return (
-            df.withColumn("rank", F.row_number().over(window))
-            .filter(F.col("rank") == 1)
-            .drop("rank")
+            df.withColumn('rank', F.row_number().over(window))
+            .filter(F.col('rank') == 1)
+            .drop('rank')
         )
 
 
 class EtlPipeline:
-    def __init__(self) -> None:
+    def __init__(self, config) -> None:
         """
         Initialize pipeline configuration, logger and Spark session.
 
@@ -103,16 +103,18 @@ class EtlPipeline:
             Exception: Re-raises any exception that happens during initialization after logging.
         """
         try:
-            self.config = EtlConfig()
+            self.config = config
             self.name: str = self.config.name
             self.log = Logger(name=self.name)
 
             self.spark = BaseSpark(name=self.name).create_session()
-            self.spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
+            self.spark.conf.set('spark.sql.sources.partitionOverwriteMode', 'dynamic')
+            self.spark.conf.set('spark.sql.shuffle.partitions', '16')
+            self.spark.conf.set('spark.default.parallelism', '8')
 
         except Exception as exc:
             try:
-                self.log.exception("Failed to initialize ETL pipeline.")
+                self.log.exception('Failed to initialize ETL pipeline.')
             except Exception:
                 pass
             raise
@@ -128,20 +130,20 @@ class EtlPipeline:
         Raises:
             Exception: Re-raises any exception after logging.
         """
-        date_today = datetime.now().strftime("%Y-%m-%d")
-        self.log.info(f"Start Bronze Layer Process - {date_today}")
+        date_today = datetime.now().strftime('%Y-%m-%d')
+        self.log.info(f'Start Bronze Layer Process - {date_today}')
 
         try:
-            df = read_file(spark=self.spark, file_type="csv", path=self.config.raw_file)
+            df = read_file(spark=self.spark, file_type='csv', path=self.config.raw_file)
 
-            df = EtlTransformations.upper_all(df, "nm_cliente")
+            df = EtlTransformations.upper_all(df, 'nm_cliente')
             df = EtlTransformations.rename_column(
-                df, "telefone_cliente", "num_telefone_cliente"
+                df, 'telefone_cliente', 'num_telefone_cliente'
             )
-            df = df.withColumn("anomesdia", F.lit(date_today))
+            df = df.withColumn('anomesdia', F.lit(date_today))
 
 
-            write_file(df, self.config.bucket_bronze, "anomesdia")
+            write_file(df, self.config.bucket_bronze, 'anomesdia')
 
             glue_add_partition(
                 spark=self.spark,
@@ -152,11 +154,11 @@ class EtlPipeline:
                 partition_value=date_today
             )
 
-            self.log.info(f"Finished Bronze Layer Process - {date_today}")
-            self.log.info(f"Saved in {self.config.bucket_bronze}\n")
+            self.log.info(f'Finished Bronze Layer Process - {date_today}')
+            self.log.info(f'Saved in {self.config.bucket_bronze}\n')
 
         except Exception:
-            self.log.exception(f"Bronze Layer failed - {date_today}")
+            self.log.exception(f'Bronze Layer failed - {date_today}')
             raise
 
     def silver_layer(self) -> None:
@@ -172,35 +174,35 @@ class EtlPipeline:
         Raises:
             Exception: Re-raises any exception after logging.
         """
-        date_today = datetime.now().strftime("%Y-%m-%d")
-        self.log.info(f"Start Silver Layer Process - {date_today}")
+        date_today = datetime.now().strftime('%Y-%m-%d')
+        self.log.info(f'Start Silver Layer Process - {date_today}')
 
         try:
             df = read_file(
-                spark=self.spark, file_type="parquet", path=self.config.bucket_bronze
+                spark=self.spark, file_type='parquet', path=self.config.bucket_bronze
             )
 
-            df = EtlTransformations.valid_phone(df, "num_telefone_cliente")
+            df = EtlTransformations.valid_phone(df, 'num_telefone_cliente')
 
             df = (
                 df.withColumn(
-                    "dt_atualizacao",
-                    F.to_date(F.col("dt_atualizacao"), "yyyy-MM-dd"),
+                    'dt_atualizacao',
+                    F.to_date(F.col('dt_atualizacao'), 'yyyy-MM-dd'),
                 )
                 .withColumn(
-                    "dt_nascimento_cliente",
-                    F.to_date(F.col("dt_nascimento_cliente"), "yyyy-MM-dd"),
+                    'dt_nascimento_cliente',
+                    F.to_date(F.col('dt_nascimento_cliente'), 'yyyy-MM-dd'),
                 )
-                .withColumn("vl_renda", F.col("vl_renda").cast(DecimalType(10, 2)))
+                .withColumn('vl_renda', F.col('vl_renda').cast(DecimalType(10, 2)))
                 .withColumn(
-                    "num_casa_cliente", F.col("num_casa_cliente").cast(IntegerType())
+                    'num_casa_cliente', F.col('num_casa_cliente').cast(IntegerType())
                 )
             )
 
-            df = EtlTransformations.deduplication(df, "cod_cliente", "dt_atualizacao")
-            df = df.withColumn("anomesdia", F.lit(date_today))
+            df = EtlTransformations.deduplication(df, 'cod_cliente', 'dt_atualizacao')
+            df = df.withColumn('anomesdia', F.lit(date_today))
 
-            write_file(df, self.config.bucket_silver, "anomesdia")
+            write_file(df, self.config.bucket_silver, 'anomesdia')
 
             glue_add_partition(
                 spark=self.spark,
@@ -211,11 +213,11 @@ class EtlPipeline:
                 partition_value=date_today
             )
 
-            self.log.info(f"Finished Silver Layer Process - {date_today}")
-            self.log.info(f"Saved in {self.config.bucket_silver}\n")
+            self.log.info(f'Finished Silver Layer Process - {date_today}')
+            self.log.info(f'Saved in {self.config.bucket_silver}\n')
 
         except Exception:
-            self.log.exception(f"Silver Layer failed - {date_today}")
+            self.log.exception(f'Silver Layer failed - {date_today}')
             raise
 
 
@@ -230,15 +232,24 @@ class EtlPipeline:
             self.bronze_layer()
             self.silver_layer()
         except Exception:
-            self.log.exception("ETL run failed.")
+            self.log.exception('ETL run failed.')
             raise
         finally:
             try:
                 self.spark.stop()
-                self.log.info("Spark session stopped.")
+                self.log.info('Spark session stopped.')
             except Exception:
-                self.log.exception("Failed to stop Spark session cleanly.")
+                self.log.exception('Failed to stop Spark session cleanly.')
 
+def main():
+    args = parse_args()
 
-if __name__ == "__main__":
-    EtlPipeline().run()
+    try:
+        config = EtlConfig(config_path=args.config)
+    except Exception as e:
+        raise e
+    
+    EtlPipeline(config=config).run()
+
+if __name__ == '__main__':
+    main()
