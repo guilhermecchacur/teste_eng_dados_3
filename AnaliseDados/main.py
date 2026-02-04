@@ -6,7 +6,7 @@ from pyspark.sql.types import DateType
 from pyspark.sql.window import Window
 
 # Input file path
-file_path = '/content/clientes_sinteticos.csv'
+file_path = '../clientes_sinteticos.csv'
 
 
 def most_updated(df: DataFrame) -> DataFrame:
@@ -82,11 +82,9 @@ def main():
 
     df = read_file(spark=spark, file_type='csv', path=file_path)
 
-    # Get customers with most records
     df_most_updated = most_updated(df=df)
     df_most_updated.show()
 
-    # Deduplicate and calculate average age
     df_avg_age = deduplication(
         df=df,
         groupby_column='cod_cliente',
