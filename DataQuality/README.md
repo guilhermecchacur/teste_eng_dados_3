@@ -7,6 +7,7 @@ Foi aplicado as seguintes validações:
     . Quantidade de datas de atualização maiores que hoje
 
 O resultado do Quality fica salvo como tabela, que pode ser imcorporado ao lake para consultas ou relatórios, como mostrado abaixo:
+```text
 +----------+--------------+----------+---------------------+--------------+-----+
 |table     |partition_date|total_rows|column               |metric        |value|
 +----------+--------------+----------+---------------------+--------------+-----+

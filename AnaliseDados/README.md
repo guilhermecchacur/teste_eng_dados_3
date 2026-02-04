@@ -3,7 +3,7 @@
 Para essa etapa foi utilizado o arquivo bruto clientes_sinteticos.csv, com isso temos:
 
     . 5 clientes que mais sofreram atualização
-
+```text
 +-----------+---+
 |cod_cliente|qnt|
 +-----------+---+
@@ -15,7 +15,7 @@ Para essa etapa foi utilizado o arquivo bruto clientes_sinteticos.csv, com isso 
 +-----------+---+
 
     . Média de idade dos clientes
-
+```text
 +-------+
 |avg_age|
 +-------+
